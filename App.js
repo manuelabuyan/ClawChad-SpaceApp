@@ -1,8 +1,12 @@
 import React from 'react';
-import { View, Text, StyleSheet, Dimensions } from 'react-native';
+import { NavigationContainer } from '@react-navigation/native';
+import { createNativeStackNavigator } from '@react-navigation/native-stack';
+import { View, Text, StyleSheet, Dimensions, Animated } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
+import { GestureHandlerRootView, PanGestureHandler, State } from 'react-native-gesture-handler';
 
 const { width, height } = Dimensions.get('window');
+const Stack = createNativeStackNavigator();
 
 // Generate random stars
 const generateStars = (count) => {
@@ -22,9 +26,88 @@ const generateStars = (count) => {
 
 const stars = generateStars(150);
 
-export default function App() {
+// Icon Component with Drag
+function DraggableIcon({ children, onDragEnd, style }) {
+  const translateX = React.useRef(new Animated.Value(0)).current;
+  const translateY = React.useRef(new Animated.Value(0)).current;
+
+  const onGestureEvent = Animated.event(
+    [
+      {
+        nativeEvent: {
+          translationX: translateX,
+          translationY: translateY,
+        },
+      },
+    ],
+    { useNativeDriver: true }
+  );
+
+  const onHandlerStateChange = (event) => {
+    if (event.nativeEvent.state === State.END) {
+      onDragEnd();
+    }
+  };
+
   return (
-    <View style={styles.container}>
+    <PanGestureHandler
+      onGestureEvent={onGestureEvent}
+      onHandlerStateChange={onHandlerStateChange}
+    >
+      <Animated.View
+        style={[
+          style,
+          {
+            transform: [{ translateX }, { translateY }],
+          },
+        ]}
+      >
+        {children}
+      </Animated.View>
+    </PanGestureHandler>
+  );
+}
+
+// Earth Icon
+function EarthIcon({ navigation }) {
+  return (
+    <DraggableIcon
+      style={styles.earthContainer}
+      onDragEnd={() => navigation.navigate('Earth')}
+    >
+      <Text style={styles.iconLarge}>🌍</Text>
+    </DraggableIcon>
+  );
+}
+
+// Moon Icon
+function MoonIcon({ navigation }) {
+  return (
+    <DraggableIcon
+      style={styles.moonContainer}
+      onDragEnd={() => navigation.navigate('Moon')}
+    >
+      <Text style={styles.iconMedium}>🌙</Text>
+    </DraggableIcon>
+  );
+}
+
+// Galaxy Icon
+function GalaxyIcon({ navigation }) {
+  return (
+    <DraggableIcon
+      style={styles.galaxyContainer}
+      onDragEnd={() => navigation.navigate('Galaxy')}
+    >
+      <Text style={styles.iconMedium}>✨</Text>
+    </DraggableIcon>
+  );
+}
+
+// Home Screen
+function HomeScreen({ navigation }) {
+  return (
+    <GestureHandlerRootView style={styles.container}>
       <StatusBar style="light" />
       {/* Stars */}
       {stars.map((star) => (
@@ -42,9 +125,63 @@ export default function App() {
           ]}
         />
       ))}
-      {/* Welcome Text */}
-      <Text style={styles.welcomeText}>welcome manny :)</Text>
+      
+      {/* Earth - Center */}
+      <EarthIcon navigation={navigation} />
+      
+      {/* Moon - Top Right */}
+      <MoonIcon navigation={navigation} />
+      
+      {/* Galaxy - Bottom Left */}
+      <GalaxyIcon navigation={navigation} />
+    </GestureHandlerRootView>
+  );
+}
+
+// Planet/Screen Components
+function EarthScreen({ navigation }) {
+  return (
+    <View style={styles.screenContainer}>
+      <Text style={styles.backButton} onPress={() => navigation.goBack()}>← Back</Text>
+      <Text style={styles.screenText}>earth</Text>
     </View>
+  );
+}
+
+function MoonScreen({ navigation }) {
+  return (
+    <View style={styles.screenContainer}>
+      <Text style={styles.backButton} onPress={() => navigation.goBack()}>← Back</Text>
+      <Text style={styles.screenText}>moon</Text>
+    </View>
+  );
+}
+
+function GalaxyScreen({ navigation }) {
+  return (
+    <View style={styles.screenContainer}>
+      <Text style={styles.backButton} onPress={() => navigation.goBack()}>← Back</Text>
+      <Text style={styles.screenText}>galaxy</Text>
+    </View>
+  );
+}
+
+export default function App() {
+  return (
+    <NavigationContainer>
+      <Stack.Navigator 
+        initialRouteName="Home"
+        screenOptions={{
+          headerShown: false,
+          contentStyle: { backgroundColor: '#0a0a1a' },
+        }}
+      >
+        <Stack.Screen name="Home" component={HomeScreen} />
+        <Stack.Screen name="Earth" component={EarthScreen} />
+        <Stack.Screen name="Moon" component={MoonScreen} />
+        <Stack.Screen name="Galaxy" component={GalaxyScreen} />
+      </Stack.Navigator>
+    </NavigationContainer>
   );
 }
 
@@ -63,17 +200,49 @@ const styles = StyleSheet.create({
     shadowRadius: 2,
     elevation: 2,
   },
-  welcomeText: {
+  // Icon Positions
+  earthContainer: {
     position: 'absolute',
-    top: height / 2 - 30,
-    left: 0,
-    right: 0,
-    textAlign: 'center',
+    top: height / 2 - 50,
+    left: width / 2 - 40,
+  },
+  moonContainer: {
+    position: 'absolute',
+    top: 60,
+    right: 20,
+  },
+  galaxyContainer: {
+    position: 'absolute',
+    bottom: 60,
+    left: 20,
+  },
+  iconLarge: {
+    fontSize: 80,
+  },
+  iconMedium: {
+    fontSize: 60,
+  },
+  // Screen styles
+  screenContainer: {
+    flex: 1,
+    backgroundColor: '#0a0a1a',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  screenText: {
     color: '#ffffff',
-    fontSize: 32,
+    fontSize: 48,
     fontWeight: 'bold',
     textShadowColor: 'rgba(100, 150, 255, 0.8)',
     textShadowOffset: { width: 0, height: 0 },
     textShadowRadius: 20,
+  },
+  backButton: {
+    position: 'absolute',
+    top: 60,
+    left: 20,
+    color: '#ffffff',
+    fontSize: 18,
+    fontWeight: '600',
   },
 });
