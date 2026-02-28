@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useRef } from 'react';
 import { NavigationContainer } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { View, Text, StyleSheet, Dimensions, Animated } from 'react-native';
@@ -26,10 +26,10 @@ const generateStars = (count) => {
 
 const stars = generateStars(150);
 
-// Icon Component with Drag
+// Icon Component with Drag and Spring Back
 function DraggableIcon({ children, onDragEnd, style }) {
-  const translateX = React.useRef(new Animated.Value(0)).current;
-  const translateY = React.useRef(new Animated.Value(0)).current;
+  const translateX = useRef(new Animated.Value(0)).current;
+  const translateY = useRef(new Animated.Value(0)).current;
 
   const onGestureEvent = Animated.event(
     [
@@ -45,7 +45,28 @@ function DraggableIcon({ children, onDragEnd, style }) {
 
   const onHandlerStateChange = (event) => {
     if (event.nativeEvent.state === State.END) {
-      onDragEnd();
+      const { translationX, translationY } = event.nativeEvent;
+      
+      // If dragged far enough (threshold of 50), trigger navigation
+      const distance = Math.sqrt(translationX * translationX + translationY * translationY);
+      if (distance > 50) {
+        onDragEnd();
+      }
+      
+      // Spring back to original position
+      Animated.spring(translateX, {
+        toValue: 0,
+        friction: 5,
+        tension: 40,
+        useNativeDriver: true,
+      }).start();
+      
+      Animated.spring(translateY, {
+        toValue: 0,
+        friction: 5,
+        tension: 40,
+        useNativeDriver: true,
+      }).start();
     }
   };
 
